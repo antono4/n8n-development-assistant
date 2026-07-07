@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free LLM Chat - n8n AI Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a24;
+            --bg-hover: #222230;
+            --border-color: #2a2a3a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --accent-primary: #20d76e;
+            --accent-secondary: #16a34a;
+            --accent-hover: #15803d;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #3b82f6;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #20d76e, #16a34a);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #20d76e, #16a34a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            padding: 0 8px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(32, 215, 110, 0.15);
+            color: var(--accent-primary);
+        }
+
+        .nav-item-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Provider Card */
+        .provider-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .provider-card:hover {
+            background: var(--bg-hover);
+        }
+
+        .provider-card.selected {
+            border-color: var(--accent-primary);
+            background: rgba(32, 215, 110, 0.1);
+        }
+
+        .provider-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .provider-logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .provider-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .provider-models {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .provider-status {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+
+        .provider-status.free {
+            background: rgba(32, 215, 110, 0.2);
+            color: var(--accent-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            height: 60px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .page-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #20d76e, #16a34a);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.ready {
+            background: rgba(32, 215, 110, 0.15);
+            color: var(--accent-primary);
+        }
+
+        .status-badge.sending {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .status-badge.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--error);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-badge.sending .status-dot {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Chat Area */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .message {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 18px;
+        }
+
+        .message-avatar.user {
+            background: linear-gradient(135deg, #3b82f6, #60a5fa);
+        }
+
+        .message-avatar.ai {
+            background: linear-gradient(135deg, #20d76e, #16a34a);
+        }
+
+        .message-content {
+            flex: 1;
+            max-width: 800px;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .message-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .message-model {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 2px 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .message-text {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .message-text code {
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .welcome-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #20d76e, #16a34a);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: 24px;
+        }
+
+        .welcome-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .welcome-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 16px 24px 24px;
+            background: var(--bg-primary);
+        }
+
+        .input-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .input-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .model-select {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .model-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .input-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+        }
+
+        .input-textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .input-hints {
+            display: flex;
+            gap: 16px;
+        }
+
+        .input-hint {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .input-hint kbd {
+            background: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 11px;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #20d76e, #16a34a);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .send-btn:hover {
+            opacity: 0.9;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(100%); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error .toast-icon { color: var(--error); }
+        .toast.warning .toast-icon { color: var(--warning); }
+
+        .toast-message {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">⚡</div>
+                    <span class="logo-text">Free LLM</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Free Providers</div>
+                    
+                    <!-- Groq -->
+                    <div class="provider-card selected" onclick="selectProvider('groq')" id="provider-groq">
+                        <div class="provider-header">
+                            <div class="provider-logo" style="background: #f97316; color: white;">G</div>
+                            <div>
+                                <div class="provider-name">Groq</div>
+                                <div class="provider-models">Llama 3.1, Mixtral, Gemma</div>
+                            </div>
+                            <span class="provider-status free">FREE</span>
+                        </div>
+                    </div>
+
+                    <!-- OpenRouter -->
+                    <div class="provider-card" onclick="selectProvider('openrouter')" id="provider-openrouter">
+                        <div class="provider-header">
+                            <div class="provider-logo" style="background: #6366f1; color: white;">OR</div>
+                            <div>
+                                <div class="provider-name">OpenRouter</div>
+                                <div class="provider-models">50 req/day free</div>
+                            </div>
+                            <span class="provider-status free">FREE</span>
+                        </div>
+                    </div>
+
+                    <!-- HuggingFace -->
+                    <div class="provider-card" onclick="selectProvider('huggingface')" id="provider-huggingface">
+                        <div class="provider-header">
+                            <div class="provider-logo" style="background: #ffd700; color: black;">HF</div>
+                            <div>
+                                <div class="provider-name">HuggingFace</div>
+                                <div class="provider-models">$0.10/month credits</div>
+                            </div>
+                            <span class="provider-status free">FREE</span>
+                        </div>
+                    </div>
+
+                    <!-- GitHub Models -->
+                    <div class="provider-card" onclick="selectProvider('github')" id="provider-github">
+                        <div class="provider-header">
+                            <div class="provider-logo" style="background: #24292f; color: white;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="provider-name">GitHub Models</div>
+                                <div class="provider-models">Llama, GPT-oss, Qwen</div>
+                            </div>
+                            <span class="provider-status free">FREE</span>
+                        </div>
+                    </div>
+
+                    <!-- Cloudflare -->
+                    <div class="provider-card" onclick="selectProvider('cloudflare')" id="provider-cloudflare">
+                        <div class="provider-header">
+                            <div class="provider-logo" style="background: #f38020; color: white;">CF</div>
+                            <div>
+                                <div class="provider-name">Cloudflare Workers</div>
+                                <div class="provider-models">Llama 3, Mistral</div>
+                            </div>
+                            <span class="provider-status free">FREE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Quick Actions</div>
+                    <div class="nav-item" onclick="quickAction('n8n-workflow')">
+                        <span class="nav-item-icon">🔗</span>
+                        <span>Create n8n Workflow</span>
+                    </div>
+                    <div class="nav-item" onclick="quickAction('code-review')">
+                        <span class="nav-item-icon">🔍</span>
+                        <span>Code Review</span>
+                    </div>
+                    <div class="nav-item" onclick="quickAction('debug')">
+                        <span class="nav-item-icon">🐛</span>
+                        <span>Debug Issue</span>
+                    </div>
+                    <div class="nav-item" onclick="quickAction('docs')">
+                        <span class="nav-item-icon">📝</span>
+                        <span>Documentation</span>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 class="page-title">Free LLM Chat</h1>
+                    <div class="status-badge ready" id="statusBadge">
+                        <span class="status-dot"></span>
+                        <span id="statusText">Ready</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-secondary" onclick="clearChat()">
+                        <span>🗑️</span>
+                        <span>Clear</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Container -->
+            <div class="chat-container">
+                <!-- Welcome Screen -->
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-icon">⚡</div>
+                    <h1 class="welcome-title">Free LLM Chat</h1>
+                    <p class="welcome-subtitle">
+                        Chat with AI using completely free LLM APIs. 
+                        No API keys required for most providers!
+                        Select a provider from the sidebar and start chatting.
+                    </p>
+                </div>
+
+                <!-- Chat Messages -->
+                <div class="chat-messages" id="chatMessages" style="display: none;">
+                    <!-- Messages will be inserted here -->
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-area">
+                    <div class="input-container">
+                        <div class="input-header">
+                            <select class="model-select" id="modelSelect">
+                                <!-- Models will be populated based on selected provider -->
+                            </select>
+                        </div>
+                        <textarea 
+                            class="input-textarea" 
+                            id="messageInput"
+                            placeholder="Ask me anything... (e.g., 'Create a n8n workflow that syncs GitHub issues to Notion')"
+                            rows="3"
+                        ></textarea>
+                        <div class="input-footer">
+                            <div class="input-hints">
+                                <span class="input-hint">
+                                    <kbd>Enter</kbd> to send
+                                </span>
+                                <span class="input-hint">
+                                    <kbd>Shift</kbd>+<kbd>Enter</kbd> for new line
+                                </span>
+                            </div>
+                            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                                <span>🚀</span>
+                                <span>Send</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // Provider configurations
+        const providers = {
+            groq: {
+                name: 'Groq',
+                endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+                models: [
+                    { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B' },
+                    { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B' },
+                    { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B' },
+                    { id: 'gemma2-9b-it', name: 'Gemma 2 9B' }
+                ],
+                defaultModel: 'llama-3.3-70b-versatile',
+                requiresKey: true,
+                keyName: 'groq_api_key'
+            },
+            openrouter: {
+                name: 'OpenRouter',
+                endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+                models: [
+                    { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B' },
+                    { id: 'qwen/qwen-2.5-72b-instruct', name: 'Qwen 2.5 72B' },
+                    { id: 'mistralai/mistral-nemo', name: 'Mistral Nemo' },
+                    { id: 'google/gemini-pro', name: 'Gemini Pro' }
+                ],
+                defaultModel: 'meta-llama/llama-3.3-70b-instruct',
+                requiresKey: true,
+                keyName: 'openrouter_api_key'
+            },
+            huggingface: {
+                name: 'HuggingFace',
+                endpoint: 'https://api-inference.huggingface.co/models',
+                models: [
+                    { id: 'meta-llama/Llama-3.2-3B-Instruct', name: 'Llama 3.2 3B' },
+                    { id: 'mistralai/Mistral-7B-Instruct-v0.3', name: 'Mistral 7B' },
+                    { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen 2.5 7B' }
+                ],
+                defaultModel: 'meta-llama/Llama-3.2-3B-Instruct',
+                requiresKey: true,
+                keyName: 'hf_api_key'
+            },
+            github: {
+                name: 'GitHub Models',
+                endpoint: 'https://models.inference.ai.azure.com/v1/chat/completions',
+                models: [
+                    { id: 'Llama-3.3-70B-Instruct', name: 'Llama 3.3 70B' },
+                    { id: 'gpt-oss-120b', name: 'GPT-OSS 120B' },
+                    { id: 'Qwen-2.5-72B-Instruct', name: 'Qwen 2.5 72B' },
+                    { id: 'Llama-3.1-8B-Instruct', name: 'Llama 3.1 8B' }
+                ],
+                defaultModel: 'Llama-3.3-70B-Instruct',
+                requiresKey: true,
+                keyName: 'github_token',
+                authType: 'github'
+            },
+            cloudflare: {
+                name: 'Cloudflare Workers',
+                endpoint: 'https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/ai/run/@cf',
+                models: [
+                    { id: '@cf/meta/llama-3.1-8b-instruct', name: 'Llama 3.1 8B' },
+                    { id: '@cf/mistral/mistral-7b-instruct-v0.1', name: 'Mistral 7B' },
+                    { id: '@cf/qwen/qwen2.5-7b-instruct', name: 'Qwen 2.5 7B' }
+                ],
+                defaultModel: '@cf/meta/llama-3.1-8b-instruct',
+                requiresKey: true,
+                keyName: 'cf_api_key'
+            }
+        };
+
+        // State
+        let state = {
+            currentProvider: 'groq',
+            currentModel: providers.groq.defaultModel,
+            messages: [],
+            isLoading: false
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadKeys();
+            updateModelSelect();
+            setupEventListeners();
+        });
+
+        function loadKeys() {
+            // Load saved API keys from localStorage
+            for (const [key, provider] of Object.entries(providers)) {
+                const savedKey = localStorage.getItem(provider.keyName);
+                if (savedKey) {
+                    state[`${key}_key`] = savedKey;
+                }
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('messageInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            document.getElementById('modelSelect').addEventListener('change', (e) => {
+                state.currentModel = e.target.value;
+            });
+        }
+
+        function selectProvider(providerId) {
+            state.currentProvider = providerId;
+            state.currentModel = providers[providerId].defaultModel;
+
+            // Update UI
+            document.querySelectorAll('.provider-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.getElementById(`provider-${providerId}`).classList.add('selected');
+
+            // Update model select
+            updateModelSelect();
+            
+            showToast(`Selected: ${providers[providerId].name}`, 'success');
+        }
+
+        function updateModelSelect() {
+            const select = document.getElementById('modelSelect');
+            const provider = providers[state.currentProvider];
+            
+            select.innerHTML = provider.models.map(model => 
+                `<option value="${model.id}" ${model.id === state.currentModel ? 'selected' : ''}>${model.name}</option>`
+            ).join('');
+
+            state.currentModel = provider.defaultModel;
+        }
+
+        function quickAction(action) {
+            const prompts = {
+                'n8n-workflow': "Create a n8n workflow that syncs GitHub issues to Notion database with status updates and notifications.",
+                'code-review': "Review this code for potential bugs, security issues, and optimization opportunities.",
+                'debug': "Debug why my n8n workflow is failing with HTTP Request timeout errors. Provide step-by-step troubleshooting.",
+                'docs': "Generate comprehensive documentation for an n8n workflow that automates data synchronization between two APIs."
+            };
+            
+            document.getElementById('messageInput').value = prompts[action] || '';
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('chatMessages').style.display = 'block';
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || state.isLoading) return;
+            
+            // Show chat
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('chatMessages').style.display = 'block';
+
+            // Add user message
+            addMessage('user', message);
+            input.value = '';
+
+            state.isLoading = true;
+            updateStatus('sending', 'Sending...');
+            
+            // Show typing indicator
+            const typingId = addTypingIndicator();
+
+            try {
+                const response = await callAPI(message);
+                removeTypingIndicator(typingId);
+                addMessage('ai', response);
+                updateStatus('ready', 'Ready');
+            } catch (error) {
+                removeTypingIndicator(typingId);
+                addMessage('ai', `❌ Error: ${error.message}\n\nPlease check your API key or try another provider.`);
+                updateStatus('error', 'Error');
+            }
+
+            state.isLoading = false;
+        }
+
+        async function callAPI(message) {
+            const provider = providers[state.currentProvider];
+            
+            // Get API key
+            let apiKey = localStorage.getItem(provider.keyName);
+            
+            if (provider.requiresKey && !apiKey) {
+                // Prompt for API key
+                apiKey = prompt(`Please enter your ${provider.name} API key:\n\nGet it from: ${getKeyUrl(state.currentProvider)}`);
+                if (!apiKey) {
+                    throw new Error(`API key required for ${provider.name}`);
+                }
+                localStorage.setItem(provider.keyName, apiKey);
+            }
+
+            // Build messages
+            const messages = [
+                { role: 'system', content: 'You are a helpful AI assistant specialized in n8n workflow automation, code review, debugging, and documentation. Provide clear, concise, and actionable responses.' },
+                ...state.messages.map(m => ({ role: m.role, content: m.content })),
+                { role: 'user', content: message }
+            ];
+
+            // Call different APIs based on provider
+            switch (state.currentProvider) {
+                case 'groq':
+                    return await callGroq(provider, messages, apiKey);
+                case 'openrouter':
+                    return await callOpenRouter(provider, messages, apiKey);
+                case 'github':
+                    return await callGitHubModels(provider, messages, apiKey);
+                case 'huggingface':
+                    return await callHuggingFace(provider, messages, apiKey);
+                case 'cloudflare':
+                    return await callCloudflare(provider, messages, apiKey);
+                default:
+                    throw new Error('Provider not supported');
+            }
+        }
+
+        async function callGroq(provider, messages, apiKey) {
+            const response = await fetch(provider.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: state.currentModel,
+                    messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 4096
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'API request failed');
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+
+        async function callOpenRouter(provider, messages, apiKey) {
+            const response = await fetch(provider.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': 'https://github.com/antono4/n8n',
+                    'X-Title': 'n8n Development Assistant'
+                },
+                body: JSON.stringify({
+                    model: state.currentModel,
+                    messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 4096
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'API request failed');
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+
+        async function callGitHubModels(provider, messages, apiKey) {
+            const response = await fetch(provider.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: state.currentModel,
+                    messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 4096
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'API request failed');
+            }
+
+            const data = await response.json();
+            return data.choices[0].message.content;
+        }
+
+        async function callHuggingFace(provider, messages, apiKey) {
+            // HuggingFace uses a different format
+            const response = await fetch(`${provider.endpoint}/${state.currentModel}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    inputs: messages.map(m => `${m.role}: ${m.content}`).join('\n'),
+                    parameters: {
+                        temperature: 0.7,
+                        max_new_tokens: 4096
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'API request failed');
+            }
+
+            const data = await response.json();
+            return Array.isArray(data) ? data[0].generated_text : data.generated_text;
+        }
+
+        async function callCloudflare(provider, messages, apiKey) {
+            const accountId = localStorage.getItem('cf_account_id');
+            if (!accountId) {
+                const id = prompt('Please enter your Cloudflare Account ID:');
+                if (!id) throw new Error('Account ID required');
+                localStorage.setItem('cf_account_id', id);
+            }
+
+            const url = `https://api.cloudflare.com/client/v4/accounts/${localStorage.getItem('cf_account_id')}/ai/run${state.currentModel}`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    messages: messages
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.errors?.[0]?.message || 'API request failed');
+            }
+
+            const data = await response.json();
+            return data.response;
+        }
+
+        function getKeyUrl(provider) {
+            const urls = {
+                groq: 'https://console.groq.com/keys',
+                openrouter: 'https://openrouter.ai/keys',
+                huggingface: 'https://huggingface.co/settings/tokens',
+                github: 'https://github.com/settings/tokens',
+                cloudflare: 'https://dash.cloudflare.com/profile/api-tokens'
+            };
+            return urls[provider] || '#';
+        }
+
+        function addMessage(role, content) {
+            const container = document.getElementById('chatMessages');
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const provider = providers[state.currentProvider];
+            const model = provider.models.find(m => m.id === state.currentModel)?.name || state.currentModel;
+
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message';
+            messageEl.innerHTML = `
+                <div class="message-avatar ${role}">${role === 'user' ? '👤' : '⚡'}</div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-name">${role === 'user' ? 'You' : provider.name}</span>
+                        ${role === 'ai' ? `<span class="message-model">${model}</span>` : ''}
+                        <span class="message-time">${time}</span>
+                    </div>
+                    <div class="message-text">${formatMarkdown(content)}</div>
+                </div>
+            `;
+
+            container.appendChild(messageEl);
+            container.scrollTop = container.scrollHeight;
+
+            state.messages.push({ role, content });
+        }
+
+        function addTypingIndicator() {
+            const container = document.getElementById('chatMessages');
+            const provider = providers[state.currentProvider];
+            const id = 'typing-' + Date.now();
+
+            const typingEl = document.createElement('div');
+            typingEl.className = 'message';
+            typingEl.id = id;
+            typingEl.innerHTML = `
+                <div class="message-avatar ai">⚡</div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-name">${provider.name}</span>
+                        <span class="message-time">Typing...</span>
+                    </div>
+                    <div class="message-text">
+                        <div style="display: flex; gap: 4px; padding: 8px 0;">
+                            <div style="width: 8px; height: 8px; background: #20d76e; border-radius: 50%; animation: typing 1s infinite;"></div>
+                            <div style="width: 8px; height: 8px; background: #20d76e; border-radius: 50%; animation: typing 1s infinite 0.2s;"></div>
+                            <div style="width: 8px; height: 8px; background: #20d76e; border-radius: 50%; animation: typing 1s infinite 0.4s;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(typingEl);
+            container.scrollTop = container.scrollHeight;
+
+            return id;
+        }
+
+        function removeTypingIndicator(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function formatMarkdown(text) {
+            return text
+                .replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
+                    return `<div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin: 12px 0; overflow-x: auto;">
+                        <code style="font-family: 'Fira Code', monospace; font-size: 13px; white-space: pre;">${escapeHtml(code.trim())}</code>
+                    </div>`;
+                })
+                .replace(/`([^`]+)`/g, '<code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px;">$1</code>')
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateStatus(status, text) {
+            const badge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
+            const sendBtn = document.getElementById('sendBtn');
+
+            badge.className = `status-badge ${status}`;
+            statusText.textContent = text;
+            sendBtn.disabled = status === 'sending';
+        }
+
+        function clearChat() {
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('welcomeScreen').style.display = 'flex';
+            document.getElementById('chatMessages').style.display = 'none';
+            state.messages = [];
+            showToast('Chat cleared', 'success');
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = { success: '✓', error: '✗', warning: '⚠' };
+            
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type]}</span>
+                <span class="toast-message">${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
