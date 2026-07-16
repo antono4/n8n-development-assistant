@@ -1,5 +1,8 @@
 # Free LLM Chat - n8n AI Assistant
 
+> **Created by Antono**
+
+
 Chat with AI using completely **FREE** LLM APIs. No API keys required for most providers!
 
 ## ⚡ Features
